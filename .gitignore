@@ -1,0 +1,8 @@
+.claude/
+CLAUDE.md
+.idea/
+.kotlin/
+.gradle/
+build/
+out/
+*.class

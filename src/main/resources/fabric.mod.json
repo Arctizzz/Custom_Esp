@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "arctizzz",
+  "version": "${version}",
+  "name": "Custom_Esp",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "accessWidener": "arctizzz.accesswidener",
+  "icon": "assets/arctizzz/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "fabric-datagen": [
+      "org.arctizzz.arctizzz.client.ArctizzzDataGenerator"
+    ],
+    "client": [
+      "org.arctizzz.arctizzz.client.ArctizzzClient"
+    ],
+    "main": [
+      "org.arctizzz.arctizzz.Arctizzz"
+    ]
+  },
+  "mixins": [
+    "arctizzz.mixins.json",
+    {
+      "config": "arctizzz.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-language-kotlin": ">=${kotlin_loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
