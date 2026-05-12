@@ -29,7 +29,7 @@ object HighlightCommand {
                                 if (config.filters.none { it.equals(filter, ignoreCase = true) }) {
                                     config.filters.add(filter)
                                     config.save()
-                                    EspManager.clearInvalid()
+                                    EspManager.clear()
                                     ctx.source.sendFeedback(Text.literal("§aAdded filter: §f\"$filter\""))
                                 } else {
                                     ctx.source.sendFeedback(Text.literal("§eFilter already exists: §f\"$filter\""))

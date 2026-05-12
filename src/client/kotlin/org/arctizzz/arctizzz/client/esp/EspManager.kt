@@ -3,7 +3,9 @@ package org.arctizzz.arctizzz.client.esp
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.world.ClientWorld
 import net.minecraft.entity.Entity
+import net.minecraft.entity.boss.WitherEntity
 import net.minecraft.entity.decoration.ArmorStandEntity
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.Box
 import org.arctizzz.arctizzz.client.config.HighlightConfig
 import java.util.UUID
@@ -56,7 +58,7 @@ object EspManager {
         }
         if (++tickCounter < config.scanDelay) return
         tickCounter = 0
-        scan(config.filters)
+        scan(config.filters, config.depthCheck)
     }
 
     /**
@@ -76,6 +78,7 @@ object EspManager {
         val matches = config.filters.any { name.contains(it, ignoreCase = true) }
 
         if (matches) {
+            if (!entity.isCustomNameVisible && !config.depthCheck) return
             val world = MinecraftClient.getInstance().world ?: return
             trackedStands[entity.uuid] = entity
             val mob = findClosestMob(world, entity)
@@ -131,19 +134,11 @@ object EspManager {
         tickCounter = 0
     }
 
-    /**
-     * Clears the rejected set so previously-skipped armor stands are
-     * re-evaluated on the next scan. Call this after adding a new filter.
-     */
-    fun clearInvalid() {
-        invalidIds.clear()
-    }
-
     // -------------------------------------------------------------------------
     // Internal scan logic (tick/main thread only)
     // -------------------------------------------------------------------------
 
-    private fun scan(filters: List<String>) {
+    private fun scan(filters: List<String>, depthCheck: Boolean) {
         val world = MinecraftClient.getInstance().world ?: return
 
         val armorStands = world.entities.filterIsInstance<ArmorStandEntity>()
@@ -177,6 +172,7 @@ object EspManager {
             val matches = filters.any { name.contains(it, ignoreCase = true) }
 
             if (matches) {
+                if (!stand.isCustomNameVisible && !depthCheck) continue
                 trackedStands[stand.uuid] = stand
                 val mob = findClosestMob(world, stand)
                 targets[stand.uuid] = mob ?: stand
@@ -196,31 +192,21 @@ object EspManager {
     }
 
     /**
-     * Searches for the actual mob beneath the armor-stand nametag using a cylinder.
+     * Searches for the actual mob beneath the armor-stand nametag.
      *
-     * We use a box query for spatial efficiency (world chunk hashing), then filter
-     * by XZ distance to get an actual cylinder shape — otherwise box corners would
-     * accept mobs that are diagonally too far away.
-     *
-     * Ranges (tuned for server nametag stands that float above mobs):
-     *   XZ radius : 3 blocks
-     *   Y range   : -6 (down) to +0.5 (up)  — stand is always above the mob
+     * Uses the stand's own bounding box offset 1 block down — the mob sits
+     * directly beneath the stand so their boxes naturally overlap. Players
+     * and invisible Withers are excluded to avoid false positives.
      */
     private fun findClosestMob(world: ClientWorld, stand: ArmorStandEntity): Entity? {
-        val xzRadius = 3.0
-        val yDown    = 6.0
-        val yUp      = 0.5
-
-        val searchBox = Box(
-            stand.x - xzRadius, stand.y - yDown, stand.z - xzRadius,
-            stand.x + xzRadius, stand.y + yUp,   stand.z + xzRadius
-        )
-
+        val searchBox = stand.boundingBox.offset(0.0, -1.0, 0.0)
+        val mc = MinecraftClient.getInstance()
         return world.getOtherEntities(stand, searchBox) { entity ->
             if (entity is ArmorStandEntity) return@getOtherEntities false
-            val dx = entity.x - stand.x
-            val dz = entity.z - stand.z
-            (dx * dx + dz * dz) <= xzRadius * xzRadius
+            if (entity == mc.player) return@getOtherEntities false
+            if (entity is PlayerEntity) return@getOtherEntities false
+            if (entity is WitherEntity && entity.isInvisible) return@getOtherEntities false
+            true
         }.minByOrNull { it.squaredDistanceTo(stand) }
     }
 }

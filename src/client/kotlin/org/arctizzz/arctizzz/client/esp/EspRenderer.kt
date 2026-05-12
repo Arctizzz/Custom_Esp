@@ -24,13 +24,9 @@ import org.joml.Matrix4f
  *   through walls, full opacity (wireframe: alpha 255, filled: alpha 80).
  *
  * depthCheck = true:
- *   Two passes per entity:
- *     Pass 1 — ESP / ESP_FILLED (NO_DEPTH_TEST), alpha 102 (~40%).
- *              Draws through walls at reduced opacity so occluded portions
- *              appear dim.
- *     Pass 2 — ESP_DEPTH / ESP_FILLED_DEPTH (LEQUAL_DEPTH_TEST), alpha 255.
- *              Draws only where geometry passes the depth test, painting
- *              visible portions at full brightness on top of pass 1.
+ *   Single pass with ESP_DEPTH / ESP_FILLED_DEPTH (LEQUAL_DEPTH_TEST),
+ *   alpha 255. Renders only where geometry passes the depth test — portions
+ *   of the entity hidden behind walls are not drawn.
  */
 object EspRenderer {
 
